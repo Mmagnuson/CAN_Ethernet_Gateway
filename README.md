@@ -9,11 +9,11 @@ CAN-Ethernet Gateway is a C# library that allows for easy communication with a C
 The library also makes it easy to receive and send standard J1939 messages. 
 
 
-Currently Supported Features
+<b>Currently Supported Features</b>
 - UDP Protocol
 - J1939 Phrasing
-- .Net Core Native
+- .Net Core
 
-Requirements / Issues
+<b>Requirements / Issues</b>
 - You must disable the PCAN-Gateway Handshake to allow the connection (Handshake currently not supported).
 - TCP protocol currently not supported
