@@ -11,9 +11,12 @@ namespace CANEthernetGateway
     {
         public object SyncRoot;
 
-
         private static Thread _thread;
-        private int port = 0000;
+
+        private int InboundPort;
+        private IPAddress RemoteAddress;
+        private int RemotePort;
+
         private Dictionary<int, CanMessageDefinition> messageDict;
         private ManualResetEvent stopping = new ManualResetEvent(false);
         private ManualResetEvent dataReceived = new ManualResetEvent(false);
@@ -23,7 +26,6 @@ namespace CANEthernetGateway
         private IPEndPoint remoteClient;
         private IPEndPoint remoteSender;
         private DateTime lastPacketTime;
-
 
         public IList<CanMessageDefinition> Messages { get; private set; }
 
@@ -50,12 +52,18 @@ namespace CANEthernetGateway
             this.messageDict = Messages.ToDictionary(x => x.MessageID);
         }
 
-        public void StartProcess(int inboundPort, IPAddress remoteId, int remotePort)
+        public void Configuration(int inboundPort, IPAddress remoteAddress, int remotePort)
+
+        {
+            InboundPort = inboundPort;
+            RemoteAddress = remoteAddress;
+            RemotePort = remotePort;
+        }
+
+        public void StartProcess()
         {
             lock (SyncRoot)
             {
-                port = inboundPort;
-                remoteClient = new IPEndPoint(remoteId, remotePort);
                 _thread = new System.Threading.Thread(ThreadWorker);
                 _thread.IsBackground = true;
                 _thread.Name = "CAN Bus UDP Thread ";
@@ -73,7 +81,7 @@ namespace CANEthernetGateway
             }
             catch (Exception ex)
             {
-                int error = 1;
+
             }
         }
 
@@ -83,12 +91,13 @@ namespace CANEthernetGateway
 
         public void Connect()
         {
+            remoteClient = new IPEndPoint(RemoteAddress, RemotePort);
             UDPCANClient = new UdpClient();
             UDPCANClient.Connect(remoteClient);
             lock (SyncRoot)
             {
                 remoteSender = new IPEndPoint(IPAddress.Any, 0);
-                UDPCANServer = new UdpClient(port);
+                UDPCANServer = new UdpClient(InboundPort);
                 UdpState state = new UdpState(UDPCANServer, remoteSender);
                 udpResult = UDPCANServer.BeginReceive(new AsyncCallback(DataReceived), state);
             }
