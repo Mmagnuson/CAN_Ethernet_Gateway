@@ -11,7 +11,7 @@ The library also makes it easy to receive and send standard J1939 messages.
 
 <b>Currently Supported Features</b>
 - UDP Protocol
-- J1939 Phrasing
+- J1939 and NMEA 2000 Phrasing
 - .Net Core
 
 <b>Requirements / Issues</b>
