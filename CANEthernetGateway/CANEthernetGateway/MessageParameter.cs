@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace CANEthernetGateway
 {
@@ -16,11 +14,12 @@ namespace CANEthernetGateway
         public double Min;
         public double Max;
         public string Unit;
-        public int MultiplexID;
-        public bool IsMultiplexID;
+        public int MultiplexId;
+        public bool IsMultiplexId;
 
-        public MessageParameter(double factor, int offSet, int start, int length, double min, double max, string unit, Type type, string name, int multiplexID = -1, bool isMultiplexId = false)
+        public MessageParameter(double factor, int offSet, int start, int length, double min, double max, string unit, Type type, string name, int multiplexId = -1, bool isMultiplexId = false)
         {
+           
             Factor = factor;
             OffSet = offSet;
             Start = start;
@@ -28,9 +27,10 @@ namespace CANEthernetGateway
             Type = type;
             Name = name;
             Unit = unit;
+            Min = min;
             Max = max;
-            MultiplexID = multiplexID;
-            IsMultiplexID = isMultiplexId;
+            MultiplexId = multiplexId;
+            IsMultiplexId = isMultiplexId;
 
             if (type.IsValueType)
             {

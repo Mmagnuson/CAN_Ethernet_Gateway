@@ -7,66 +7,55 @@ using System.Threading;
 
 namespace CANEthernetGateway
 {
-    public class CANGateway
+    public class CanGateway
     {
         public object SyncRoot;
 
         private static Thread _thread;
-
-        private int InboundPort;
-        private IPAddress RemoteAddress;
-        private int RemotePort;
-
-        private Dictionary<int, CanMessageDefinition> messageDict;
-        private ManualResetEvent stopping = new ManualResetEvent(false);
-        private ManualResetEvent dataReceived = new ManualResetEvent(false);
-        private IAsyncResult udpResult;
-        private UdpClient UDPCANServer;
-        private UdpClient UDPCANClient;
-        private IPEndPoint remoteClient;
-        private IPEndPoint remoteSender;
-        private DateTime lastPacketTime;
+        private int _inboundPort;
+        private IPAddress _remoteAddress;
+        private int _remotePort;
+        private Dictionary<int, CanMessageDefinition> _messageDict;
+        private readonly ManualResetEvent _stopping;
+       // private ManualResetEvent _dataReceived; // ToDo: Add events for data recieved;
+        private IAsyncResult _udpResult;
+        private UdpClient _udpcanServer;
+        private UdpClient _udpcanClient;
+        private IPEndPoint _remoteClient;
+        private IPEndPoint _remoteSender;
+        private DateTime _lastPacketTime;
 
         public IList<CanMessageDefinition> Messages { get; private set; }
 
-        public CANGateway()
+        public CanGateway()
         {
             SyncRoot = new object();
+
+           // _dataReceived = new ManualResetEvent(false);
+            _stopping = new ManualResetEvent(false);
         }
 
-        public bool Connected
-        {
-            get
-            {
-                if ((DateTime.Now - lastPacketTime).TotalMilliseconds <= 500)
-                {
-                    return true;
-                }
-                return false;
-            }
-        }
+        public bool Connected => (DateTime.Now - _lastPacketTime).TotalMilliseconds <= 500;
 
         public void CanBusDefLoad(IList<CanMessageDefinition> messages)
         {
             this.Messages = messages;
-            this.messageDict = Messages.ToDictionary(x => x.MessageID);
+            this._messageDict = Messages.ToDictionary(x => x.Id);
         }
 
         public void Configuration(int inboundPort, IPAddress remoteAddress, int remotePort)
 
         {
-            InboundPort = inboundPort;
-            RemoteAddress = remoteAddress;
-            RemotePort = remotePort;
+            _inboundPort = inboundPort;
+            _remoteAddress = remoteAddress;
+            _remotePort = remotePort;
         }
 
         public void StartProcess()
         {
             lock (SyncRoot)
             {
-                _thread = new System.Threading.Thread(ThreadWorker);
-                _thread.IsBackground = true;
-                _thread.Name = "CAN Bus UDP Thread ";
+                _thread = new Thread(ThreadWorker) {IsBackground = true, Name = "CAN Bus UDP Thread "};
                 _thread.Start();
             }
         }
@@ -75,13 +64,13 @@ namespace CANEthernetGateway
         {
             try
             {
-                this.stopping.Set();
-                UDPCANServer.Client.Shutdown(SocketShutdown.Receive);
-                UDPCANServer.Client.Close();
+                this._stopping.Set();
+                _udpcanServer.Client.Shutdown(SocketShutdown.Receive);
+                _udpcanServer.Client.Close();
             }
-            catch (Exception ex)
+            catch
             {
-
+                // ignored
             }
         }
 
@@ -91,85 +80,88 @@ namespace CANEthernetGateway
 
         public void Connect()
         {
-            remoteClient = new IPEndPoint(RemoteAddress, RemotePort);
-            UDPCANClient = new UdpClient();
-            UDPCANClient.Connect(remoteClient);
+            _remoteClient = new IPEndPoint(_remoteAddress, _remotePort);
+            _udpcanClient = new UdpClient();
+            _udpcanClient.Connect(_remoteClient);
             lock (SyncRoot)
             {
-                remoteSender = new IPEndPoint(IPAddress.Any, 0);
-                UDPCANServer = new UdpClient(InboundPort);
-                UdpState state = new UdpState(UDPCANServer, remoteSender);
-                udpResult = UDPCANServer.BeginReceive(new AsyncCallback(DataReceived), state);
+                _remoteSender = new IPEndPoint(IPAddress.Any, 0);
+                _udpcanServer = new UdpClient(_inboundPort);
+                UdpState state = new UdpState(_udpcanServer, _remoteSender);
+                _udpResult = _udpcanServer.BeginReceive(DataReceived, state);
             }
         }
 
         public void Disconnect()
         {
-            UDPCANClient.Close();
+            _udpcanClient.Close();
             try
             {
-                this.stopping.Set();
-                UDPCANServer.Client.Shutdown(SocketShutdown.Receive);
-                UDPCANServer.Client.Close();
+                this._stopping.Set();
+                _udpcanServer.Client.Shutdown(SocketShutdown.Receive);
+                _udpcanServer.Client.Close();
             }
-            catch (Exception ex)
+            catch
             {
-                int error = 1;
+                // ignored
             }
         }
 
         public void DataSend(byte[] msg)
         {
-            UDPCANClient.Send(msg, msg.Length);
+            _udpcanClient.Send(msg, msg.Length);
         }
 
         private void DataReceived(IAsyncResult ar)
         {
             try
             {
-                UdpClient c = (UdpClient)((UdpState)ar.AsyncState).c;
+                UdpClient c = ((UdpState)ar.AsyncState).C;
                 IPEndPoint receivedIpEndPoint = new IPEndPoint(IPAddress.Any, 0);
                 Byte[] receiveBytes = c.EndReceive(ar, ref receivedIpEndPoint);
 
-                IPCANMsg CANFrame = new IPCANMsg();
+                IpcanMsg canFrame = new IpcanMsg();
 
-                CANFrame.DecodeCANPacket(receiveBytes);
+                canFrame.DecodeCanPacket(receiveBytes);
 
-                if (messageDict.ContainsKey(CANFrame.MessageID))
+                if (_messageDict.ContainsKey(canFrame.MessageId))
                 {
-                    if (messageDict[CANFrame.MessageID].IsMulticast == false)
+                    if (_messageDict[canFrame.MessageId].IsMulticast == false)
                     {
-                        messageDict[CANFrame.MessageID].DecodeMessage(CANFrame);
-                        lastPacketTime = DateTime.Now;
+                        _messageDict[canFrame.MessageId].DecodeMessage(canFrame);
+                        _lastPacketTime = DateTime.Now;
                     }
                     else
                     {
-                        messageDict[CANFrame.MessageID].DecodeMessageMultiplex(CANFrame);
-                        lastPacketTime = DateTime.Now;
+                        _messageDict[canFrame.MessageId].DecodeMessageMultiplex(canFrame);
+                        _lastPacketTime = DateTime.Now;
                     }
                 }
 
-                if (!stopping.WaitOne(0))
+                if (!_stopping.WaitOne(0))
                 {
                     lock (SyncRoot)
                     {
-                        udpResult = c.BeginReceive(new AsyncCallback(DataReceived), ar.AsyncState);
+                        _udpResult = c.BeginReceive(DataReceived, ar.AsyncState);
                     }
                 }
             }
-            catch { }
+            catch
+            {
+                // ignored
+            }
         }
     }
 
     internal class UdpState
     {
-        internal UdpClient c;
-        internal IPEndPoint e;
+        internal UdpClient C;
+        internal IPEndPoint E;
 
         internal UdpState(UdpClient c, IPEndPoint e)
         {
-            this.c = c;
-            this.e = e;
+            this.C = c;
+            this.E = e;
         }
     }
 }
