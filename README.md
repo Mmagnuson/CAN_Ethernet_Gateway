@@ -19,30 +19,31 @@ The library also makes it easy to receive and send standard J1939 messages.
 - TCP protocol currently not supported
 
 
-CanGateway canGatewayConnector = new CanGateway();
+
+         CanGateway canGatewayConnector = new CanGateway();
 
 
-var messages = new List<CanMessageDefinition>();
+         var messages = new List<CanMessageDefinition>();
  
-CanMessageDefinition joyStick = new CanMessageDefinition
-   {
-      IdHex = "18FDD7AA", MessageName = "GPS Position"
-   }; 
+         CanMessageDefinition joyStick = new CanMessageDefinition
+            {
+               IdHex = "18FDD7AA", MessageName = "GPS Position"
+            }; 
  
 
-var position = new CanMessageDefinition {IdHex = "09F80100", MessageName = "GPS Position"};
-    position.AddParameter(new MessageParameter(.0000001, 0, 0, 32, -2147483648, 2147483647, "Latitude", typeof(double), "Latitude"));
-    position.AddParameter(new MessageParameter(.0000001, 0, 32, 32, -2147483648, 2147483647, "Longitude", typeof(double), "Longitude"));
-    messages.Add(position);
+         var position = new CanMessageDefinition {IdHex = "09F80100", MessageName = "GPS Position"};
+             position.AddParameter(new MessageParameter(.0000001, 0, 0, 32, -2147483648, 2147483647, "Latitude", typeof(double), "Latitude"));
+             position.AddParameter(new MessageParameter(.0000001, 0, 32, 32, -2147483648, 2147483647, "Longitude", typeof(double), "Longitude"));
+             messages.Add(position);
 
 
-canGatewayConnector.CanBusDefLoad(messages); // Load messages into CAN Gateway connector;
+         canGatewayConnector.CanBusDefLoad(messages); // Load messages into CAN Gateway connector;
 
- int localPort = 2001;               // Port o open on local machine
- string remoteIp = "192.168.0.10";   // IP of remote CAN Gateway device
- int RemotePort = 5050;              // Port on remote CAN Gateway configured to the specific CAN Device
+          int localPort = 2001;               // Port o open on local machine
+          string remoteIp = "192.168.0.10";   // IP of remote CAN Gateway device
+          int RemotePort = 5050;              // Port on remote CAN Gateway configured to the specific CAN Device
 
-            canGatewayConnector.Configuration(localPort, IPAddress.Parse(remoteIp), RemotePort); // Load configuration into CAN Gateway Connector
+         canGatewayConnector.Configuration(localPort, IPAddress.Parse(remoteIp), RemotePort); // Load configuration into CAN Gateway Connector
             canGatewayConnector.StartProcess(); // Start the thread //
 
             canGatewayConnector.Connect();
@@ -65,5 +66,4 @@ canGatewayConnector.CanBusDefLoad(messages); // Load messages into CAN Gateway c
             x18Fdd7Aa.Parameters.First(x => x.Name == "Joystick1GripYAxis").Value = 50;
 
             canGatewayConnector.DataSend(x18Fdd7Aa.GenerateIpCanMsg().EncodeCanPacket()); // Encode and send message
-
             
