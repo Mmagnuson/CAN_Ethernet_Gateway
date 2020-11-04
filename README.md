@@ -1,4 +1,4 @@
-# CAN_Ethernet_Gateway
+# J1939/CAN Ethernet Gateway
 
 
 CAN-Ethernet Gateway is a C# library that allows for easy communication with a CAN Bus over IP networks. 
